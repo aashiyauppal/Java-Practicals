@@ -1,70 +1,138 @@
-import java.applet.*;
+import java.applet.Applet;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 
-public class LoginApplet extends Applet implements ActionListener
-{
-    Label l1, l2, msg;
-    TextField t1, t2;
-    Button b1;
+public class LoginApplet extends Applet
+        implements ActionListener {
 
-    public void init()
-    {
-        setLayout(new FlowLayout());
+    Label nameLabel, passLabel, status;
+    TextField nameField, passField;
+    Button insert, view, update, delete;
 
-        l1 = new Label("Name:");
-        t1 = new TextField(20);
+    Connection con;
 
-        l2 = new Label("Password:");
-        t2 = new TextField(20);
-        t2.setEchoChar('*');
+    public void init() {
+        setLayout(new GridLayout(5, 2, 10, 10));
 
-        b1 = new Button("Submit");
-        msg = new Label("");
+        nameLabel = new Label("Name:");
+        nameField = new TextField(20);
 
-        add(l1);
-        add(t1);
-        add(l2);
-        add(t2);
-        add(b1);
-        add(msg);
+        passLabel = new Label("Password:");
+        passField = new TextField(20);
+        passField.setEchoChar('*');
 
-        b1.addActionListener(this);
+        insert = new Button("Insert");
+        view = new Button("View");
+        update = new Button("Update");
+        delete = new Button("Delete");
+
+        status = new Label("Enter details");
+
+        add(nameLabel);
+        add(nameField);
+        add(passLabel);
+        add(passField);
+        add(insert);
+        add(view);
+        add(update);
+        add(delete);
+        add(status);
+
+        insert.addActionListener(this);
+        view.addActionListener(this);
+        update.addActionListener(this);
+        delete.addActionListener(this);
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            con = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3306/LoginDB",
+                    "root", "**********"
+            );
+        } catch (Exception e) {
+            status.setText("Database connection failed");
+            e.printStackTrace();
+        }
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
-        String name = t1.getText();
-        String password = t2.getText();
+    public void actionPerformed(ActionEvent e) {
+        String name = nameField.getText().trim();
+        String password = passField.getText();
 
-        try
-        {
-            Class.forName("com.mysql.cj.jdbc.Driver");
+        try {
+            if (con == null || con.isClosed()) {
+                status.setText("No database connection");
+                return;
+            }
 
-            Connection con = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/LoginDB",
-                "root",
-                "your_password"
-            );
+            if (e.getSource() == insert) {
+                PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO Users(name,password) VALUES(?,?)");
+                ps.setString(1, name);
+                ps.setString(2, password);
 
-            String query = "INSERT INTO UserDetails (Name, Password) VALUES (?, ?)";
+                ps.executeUpdate();
+                ps.close();
+                status.setText("Record inserted");
+            }
 
-            PreparedStatement ps = con.prepareStatement(query);
+            else if (e.getSource() == view) {
+                PreparedStatement ps = con.prepareStatement(
+                        "SELECT name FROM Users WHERE name=?");
+                ps.setString(1, name);
 
-            ps.setString(1, name);
-            ps.setString(2, password);
+                ResultSet rs = ps.executeQuery();
 
-            ps.executeUpdate();
+                if (rs.next()) {
+                    nameField.setText(rs.getString("name"));
+                    status.setText("Record found");
+                } else {
+                    status.setText("Record not found");
+                }
 
-            msg.setText("Data inserted successfully!");
+                rs.close();
+                ps.close();
+            }
 
-            ps.close();
-            con.close();
+            else if (e.getSource() == update) {
+                PreparedStatement ps = con.prepareStatement(
+                        "UPDATE Users SET password=? WHERE name=?");
+                ps.setString(1, password);
+                ps.setString(2, name);
+
+                int rows = ps.executeUpdate();
+                ps.close();
+
+                status.setText(rows > 0 ?
+                        "Record updated" : "Record not found");
+            }
+
+            else if (e.getSource() == delete) {
+                PreparedStatement ps = con.prepareStatement(
+                        "DELETE FROM Users WHERE name=?");
+                ps.setString(1, name);
+
+                int rows = ps.executeUpdate();
+                ps.close();
+
+                status.setText(rows > 0 ?
+                        "Record deleted" : "Record not found");
+            }
+
+        } catch (Exception ex) {
+            status.setText("Operation failed");
+            ex.printStackTrace();
         }
-        catch(Exception ex)
-        {
-            msg.setText("Error: " + ex.getMessage());
+    }
+
+    public void destroy() {
+        try {
+            if (con != null) {
+                con.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 }
