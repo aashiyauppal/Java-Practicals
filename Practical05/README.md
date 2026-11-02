@@ -74,4 +74,5 @@ Users can create, open, save, and edit text documents using the available menu o
 ## Sample Output
 <img width="936" height="624" alt="image" src="https://github.com/user-attachments/assets/788a4df7-4fc1-4711-b18c-ede787bb312c" />
 
-## ResultThe Java Swing Notepad application is successfully created with basic text-editing and file-handling functionalities.
+## Result
+The Java Swing Notepad application is successfully created with basic text-editing and file-handling functionalities.
